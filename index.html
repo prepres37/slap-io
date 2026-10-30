@@ -13,6 +13,12 @@
             border-radius: 30px; border: 2px solid #ff007f; box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
             font-size: 16px; font-weight: bold; white-space: nowrap; color: #fff;
         }
+        #version-badge {
+            position: fixed; top: 15px; left: 15px; z-index: 15;
+            background: rgba(0, 255, 204, 0.15); border: 1px solid #00ffcc;
+            color: #00ffcc; padding: 4px 10px; border-radius: 8px;
+            font-size: 12px; font-weight: bold; letter-spacing: 0.5px;
+        }
         canvas { display: block; width: 100vw; height: 100vh; }
         #shop-btn {
             position: fixed; bottom: 20px; right: 20px; z-index: 10; background: #ff007f; border: none;
@@ -35,6 +41,8 @@
     </style>
 </head>
 <body>
+    <div id="version-badge">v2 · ЦАРЬ ГОРЫ</div>
+
     <div id="ui">
         <div>Враги: <span id="enemiesCount">0</span> 👾</div>
         <div>Монеты: <span id="coins">0</span> 💰</div>
@@ -51,6 +59,8 @@
     <canvas id="gameCanvas"></canvas>
 
     <script>
+        console.log("=== ЦАРЬ ГОРЫ v2 загружен ===");
+
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const enemiesUI = document.getElementById("enemiesCount");
@@ -75,7 +85,6 @@
         let shake = 0;
         let time = 0;
 
-        // ===== АУДИО =====
         let audioCtx = null;
         let lastFallSoundTime = 0;
 
@@ -84,9 +93,8 @@
                 if (audioCtx.state === "suspended") audioCtx.resume();
                 return;
             }
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) {}
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (e) {}
         }
 
         function playFallSound() {
@@ -94,7 +102,6 @@
             if (now - lastFallSoundTime < 350) return;
             lastFallSoundTime = now;
 
-            // Падающий свист
             if (audioCtx) {
                 const t = audioCtx.currentTime;
                 const osc = audioCtx.createOscillator();
@@ -110,7 +117,6 @@
                 osc.stop(t + 1.4);
             }
 
-            // Писклявый мышиный "аааааааа"
             if ("speechSynthesis" in window) {
                 try {
                     const u = new SpeechSynthesisUtterance("аааааааа");
@@ -345,12 +351,10 @@
             }
         }
 
-        // ===== ФОН: ГОРА И ПРОПАСТЬ =====
         function drawMountain(camX, camY) {
             const cx = arena.x - camX;
             const cy = arena.y - camY;
 
-            // 1. Глубокая пропасть
             const abyss = ctx.createRadialGradient(cx, cy, arena.radius * 0.8, cx, cy, Math.max(canvas.width, canvas.height) * 0.9);
             abyss.addColorStop(0, "#100820");
             abyss.addColorStop(0.4, "#080312");
@@ -358,7 +362,6 @@
             ctx.fillStyle = abyss;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 2. Туман в пропасти
             for (let i = 0; i < 7; i++) {
                 const angle = (i / 7) * Math.PI * 2 + time * 0.0006;
                 const dist = arena.radius + 160 + i * 40;
@@ -373,7 +376,6 @@
                 ctx.fill();
             }
 
-            // 3. Тень обрыва (глубина)
             const cliffOuter = arena.radius + 90;
             const shadow = ctx.createRadialGradient(cx, cy, cliffOuter - 40, cx, cy, cliffOuter + 50);
             shadow.addColorStop(0, "rgba(0,0,0,0)");
@@ -384,7 +386,6 @@
             ctx.arc(cx, cy, cliffOuter + 50, 0, Math.PI * 2);
             ctx.fill();
 
-            // 4. Скальный массив вокруг арены
             const cliffGrad = ctx.createRadialGradient(cx, cy, arena.radius, cx, cy, cliffOuter);
             cliffGrad.addColorStop(0, "#4a4458");
             cliffGrad.addColorStop(0.4, "#353042");
@@ -395,7 +396,6 @@
             ctx.arc(cx, cy, cliffOuter, 0, Math.PI * 2);
             ctx.fill();
 
-            // 5. Трещины и камни
             ctx.strokeStyle = "rgba(10, 8, 15, 0.7)";
             for (let i = 0; i < 40; i++) {
                 const angle = i * 0.157 + Math.sin(i * 13.7) * 0.5;
@@ -417,13 +417,11 @@
                 ctx.fill();
             }
 
-            // 6. Тень у края арены (площадка приподнята)
             ctx.beginPath();
             ctx.arc(cx, cy, arena.radius + 10, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(0,0,0,0.65)";
             ctx.fill();
 
-            // 7. Платформа арены
             const arenaGrad = ctx.createRadialGradient(cx - arena.radius * 0.2, cy - arena.radius * 0.2, 0, cx, cy, arena.radius);
             arenaGrad.addColorStop(0, "#3a3650");
             arenaGrad.addColorStop(0.7, "#252236");
@@ -433,7 +431,6 @@
             ctx.arc(cx, cy, arena.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // 8. Круги-плиты на арене
             ctx.strokeStyle = "rgba(70, 65, 90, 0.4)";
             ctx.lineWidth = 1;
             for (let r = 50; r < arena.radius; r += 70) {
@@ -442,7 +439,6 @@
                 ctx.stroke();
             }
 
-            // 9. Радиальные трещины
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2 + 0.3;
                 ctx.beginPath();
@@ -452,7 +448,6 @@
                 ctx.stroke();
             }
 
-            // 10. Опасный край (неоновая подсветка)
             ctx.beginPath();
             ctx.arc(cx, cy, arena.radius, 0, Math.PI * 2);
             ctx.strokeStyle = "#ff007f";
@@ -462,7 +457,6 @@
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // 11. Внутренняя пунктирная линия предупреждения
             ctx.beginPath();
             ctx.arc(cx, cy, arena.radius - 12, 0, Math.PI * 2);
             ctx.strokeStyle = "rgba(255, 0, 127, 0.4)";
@@ -510,7 +504,6 @@
                             else sparkColor = "#ffffff";
 
                             spawnBurst(midX, midY, sparkColor, sparkCount, sparkPower);
-
                             if (impact > 1.0) spawnRing(midX, midY, sparkColor, 20 + impact * 12);
                             if (isPlayerInvolved) shake = Math.max(shake, Math.min(impact * 2.5, 14));
                         }
@@ -608,7 +601,6 @@
                     shake *= 0.9;
                 } else shake = 0;
 
-                // Гора + пропасть
                 drawMountain(camX, camY);
 
                 let aliveEnemies = 0;
