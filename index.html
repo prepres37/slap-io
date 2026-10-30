@@ -1,633 +1,950 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Царь горы</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #020004; font-family: Arial, sans-serif; touch-action: none; }
-        #ui {
-            position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 10;
-            display: flex; gap: 20px; background: rgba(23, 20, 38, 0.9); padding: 10px 20px;
-            border-radius: 30px; border: 2px solid #ff007f; box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
-            font-size: 16px; font-weight: bold; white-space: nowrap; color: #fff;
-        }
-        #version-badge {
-            position: fixed; top: 15px; left: 15px; z-index: 15;
-            background: rgba(0, 255, 204, 0.15); border: 1px solid #00ffcc;
-            color: #00ffcc; padding: 4px 10px; border-radius: 8px;
-            font-size: 12px; font-weight: bold; letter-spacing: 0.5px;
-        }
-        canvas { display: block; width: 100vw; height: 100vh; }
-        #shop-btn {
-            position: fixed; bottom: 20px; right: 20px; z-index: 10; background: #ff007f; border: none;
-            color: white; padding: 12px 20px; border-radius: 20px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 5px 15px rgba(255, 0, 127, 0.4);
-        }
-        #shop-modal {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 20; background: #171426; border: 3px solid #00ffcc; border-radius: 20px;
-            padding: 20px; width: 90%; max-width: 320px; text-align: center; color: #fff;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.4);
-        }
-        .skin-option {
-            background: #25213b; border: 2px solid #4a2574; border-radius: 10px; padding: 10px;
-            margin: 10px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px;
-        }
-        .skin-btn { background: #00ffcc; border: none; color: #000; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .skin-btn.equipped { background: #ff007f; color: #fff; }
-        #close-shop { margin-top: 15px; background: #555; border: none; color: white; padding: 8px 15px; border-radius: 10px; cursor: pointer; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Бильярд - Смачный шлепокЪ</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;height:100%;overflow:hidden;
+    background: #080b10; /* Черные поля */
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;
+    touch-action:none;
+  }
+
+  /* Стартовый экран */
+  #start-screen {
+    position: absolute; top: 0; left: 0; width: 100dvw; height: 100dvh;
+    background: radial-gradient(circle at 50% 0%, #16202c 0%, #080b10 70%);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 9999; color: #e8eef5; text-align: center; padding: 20px;
+  }
+  #start-screen h1 { font-size: 36px; margin: 0 0 10px; color: #3ddc84; letter-spacing: 1px; text-transform: uppercase; }
+  #start-btn {
+    padding: 14px 40px; font-size: 20px; border-radius: 12px; border: none;
+    background: #3ddc84; color: #000; font-weight: 800; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(61,220,132,0.3); transition: 0.2s;
+    margin-top: 20px;
+  }
+  #start-btn:hover { transform: translateY(-2px); background: #4ee595; }
+
+  /* Экран поворота (портретный режим) */
+  #rotate-warning {
+    display: none; position: absolute; top: 0; left: 0; width: 100dvw; height: 100dvh;
+    background: #0d131a; color: #fff; z-index: 9998;
+    flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  }
+  #rotate-warning svg { width: 80px; height: 80px; margin-bottom: 20px; animation: rotate 2s infinite ease-in-out; }
+  @keyframes rotate { 0% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } 100% { transform: rotate(90deg); } }
+
+  @media (orientation: portrait) {
+    #rotate-warning { display: flex; }
+  }
+
+  /* Игровая обертка */
+  #game-wrapper {
+    display: none; /* Скрыто до старта */
+    grid-template-rows: auto 1fr;
+    height: 100dvh; width: 100dvw;
+    background: radial-gradient(circle at 50% 0%, #10151c 0%, #080b10 70%);
+  }
+  #game-wrapper.active { display: grid; }
+
+  /* Верхняя панель (кнопки) */
+  #top-bar {
+    display: flex; justify-content: center; gap: 15px;
+    padding: 12px; z-index: 10;
+  }
+  #top-bar button {
+    background: rgba(26, 37, 52, 0.85); border: 2px solid #2a3850;
+    color: #cfe0f2; width: 44px; height: 44px; border-radius: 50%;
+    font-size: 18px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: 0.2s;
+  }
+  #top-bar button:hover {
+    background: rgba(36, 51, 73, 1); border-color: #3ddc84; color: #fff;
+  }
+
+  /* Основная зона: Левая панель - Стол - Правая панель */
+  #main-area {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr; /* 1fr = черные поля, auto = стол */
+    align-items: center;
+    justify-items: center;
+    height: 100%;
+    width: 100%;
+    padding: 0 10px 15px 10px;
+    min-height: 0;
+  }
+
+  /* Контейнер стола */
+  #canvas-container {
+    grid-column: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 960 / 520;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.8);
+    cursor: crosshair;
+    background: #080b10; /* Заглушка */
+  }
+
+  /* Панели игроков в черных полях */
+  .player {
+    background: #151d29; border: 2px solid #253248;
+    border-radius: 16px; padding: 16px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    transition: 0.2s; pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  #pl0 { grid-column: 1; justify-self: end; margin-right: 20px; }
+  #pl1 { grid-column: 3; justify-self: start; margin-left: 20px; }
+
+  .player .nm { font-size: 13px; opacity: 0.6; color: #fff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .player .sc { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+  
+  .player.active {
+    background: #12301f; border-color: #3ddc84;
+    box-shadow: 0 0 25px rgba(61,220,132,0.4);
+    transform: scale(1.05);
+  }
+  .player.active .nm { color: #9bf5c3; opacity: 1; }
+
+  /* Адаптивность для узких экранов (мобилки) */
+  @media (max-width: 800px) {
+    .player { padding: 10px 12px; border-radius: 12px; gap: 4px; }
+    .player .sc { font-size: 22px; }
+    .player .nm { font-size: 10px; }
+    #pl0 { margin-right: 10px; }
+    #pl1 { margin-left: 10px; }
+    #main-area { padding: 0 5px 10px 5px; }
+  }
+</style>
 </head>
 <body>
-    <div id="version-badge">v2 · ЦАРЬ ГОРЫ</div>
 
-    <div id="ui">
-        <div>Враги: <span id="enemiesCount">0</span> 👾</div>
-        <div>Монеты: <span id="coins">0</span> 💰</div>
+<!-- Стартовый экран -->
+<div id="start-screen">
+  <h1>Бильярд<br>Смачный шлепокЪ</h1>
+  <button id="start-btn">ИГРАТЬ НА ВЕСЬ ЭКРАН</button>
+</div>
+
+<!-- Предупреждение о повороте -->
+<div id="rotate-warning">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#3ddc84" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+  </svg>
+  <h2>Поверните телефон</h2>
+  <p style="opacity:0.6; margin-top:8px;">Для игры нужна альбомная ориентация</p>
+</div>
+
+<!-- Игра -->
+<div id="game-wrapper">
+  <div id="top-bar">
+    <button id="mute" title="Звук">🔊</button>
+    <button id="restart" title="Новая партия">↻</button>
+  </div>
+  <div id="main-area">
+    <!-- Левое черное поле -->
+    <div class="player" id="pl0">
+      <span class="nm">Игрок 1</span>
+      <span class="sc">0</span>
+    </div>
+    
+    <!-- Сам стол -->
+    <div id="canvas-container">
+      <canvas id="c" width="960" height="520"></canvas>
     </div>
 
-    <button id="shop-btn">🏪 Магазин Скинов</button>
-
-    <div id="shop-modal">
-        <h3 style="margin-bottom: 10px;">Выбери мем-скин</h3>
-        <div id="skins-list"></div>
-        <button id="close-shop">Закрыть</button>
+    <!-- Правое черное поле -->
+    <div class="player" id="pl1">
+      <span class="nm">Игрок 2</span>
+      <span class="sc">0</span>
     </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <script>
-        console.log("=== ЦАРЬ ГОРЫ v2 загружен ===");
-
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const enemiesUI = document.getElementById("enemiesCount");
-        const coinsUI = document.getElementById("coins");
-        const shopBtn = document.getElementById("shop-btn");
-        const shopModal = document.getElementById("shop-modal");
-        const closeShop = document.getElementById("close-shop");
-        const skinsList = document.getElementById("skins-list");
-
-        const arena = { x: 600, y: 600, radius: 400 };
-
-        let coins = Number(localStorage.getItem("shove_coins")) || 0;
-        coinsUI.textContent = coins;
-
-        let targetX = arena.x;
-        let targetY = arena.y;
-        let isPointerDown = false;
-
-        let particles = [];
-        let rings = [];
-        let floaters = [];
-        let shake = 0;
-        let time = 0;
-
-        let audioCtx = null;
-        let lastFallSoundTime = 0;
-
-        function initAudio() {
-            if (audioCtx) {
-                if (audioCtx.state === "suspended") audioCtx.resume();
-                return;
-            }
-            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-            catch (e) {}
-        }
-
-        function playFallSound() {
-            const now = performance.now();
-            if (now - lastFallSoundTime < 350) return;
-            lastFallSoundTime = now;
-
-            if (audioCtx) {
-                const t = audioCtx.currentTime;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = "sine";
-                osc.frequency.setValueAtTime(1500, t);
-                osc.frequency.exponentialRampToValueAtTime(90, t + 1.3);
-                gain.gain.setValueAtTime(0.10, t);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(t);
-                osc.stop(t + 1.4);
-            }
-
-            if ("speechSynthesis" in window) {
-                try {
-                    const u = new SpeechSynthesisUtterance("аааааааа");
-                    u.pitch = 2;
-                    u.rate = 1.6;
-                    u.volume = 0.35;
-                    u.lang = "ru-RU";
-                    speechSynthesis.speak(u);
-                } catch (e) {}
-            }
-        }
-
-        const skins = [
-            { id: "default", name: "🟢 Огурец", color: "#00ffcc", price: 0, emoji: "🟢" },
-            { id: "capybara", name: "🦫 Капибара", color: "#b5895a", price: 50, emoji: "🦫" },
-            { id: "floppa", name: "🐈 Шлёпа", color: "#ffaa44", price: 120, emoji: "🐈" },
-            { id: "anon", name: "🎭 Анонимус", color: "#ffffff", price: 250, emoji: "🎭" }
-        ];
-
-        let ownedSkins = ["default"];
-        try { ownedSkins = JSON.parse(localStorage.getItem("shove_owned_skins")) || ["default"]; }
-        catch (e) { ownedSkins = ["default"]; }
-
-        let currentSkin = localStorage.getItem("shove_current_skin") || "default";
-
-        class Entity {
-            constructor(x, y, radius, skinId, isPlayer = false) {
-                this.x = x; this.y = y; this.radius = radius;
-                this.isPlayer = isPlayer; this.skinId = skinId;
-                this.vx = 0; this.vy = 0; this.mass = radius; this.alive = true;
-                this.hitCooldown = 0;
-            }
-
-            update() {
-                if (!this.alive) return;
-                if (this.hitCooldown > 0) this.hitCooldown--;
-
-                if (this.isPlayer) {
-                    if (isPointerDown) {
-                        const dx = targetX - this.x;
-                        const dy = targetY - this.y;
-                        const dist = Math.hypot(dx, dy);
-                        if (dist > 5) {
-                            const speed = Math.min(dist * 0.08, 5);
-                            this.vx += (dx / dist) * speed * 0.2;
-                            this.vy += (dy / dist) * speed * 0.2;
-                        }
-                    }
-                } else {
-                    if (player && player.alive) {
-                        const dx = player.x - this.x;
-                        const dy = player.y - this.y;
-                        const dist = Math.hypot(dx, dy) || 1;
-                        if (dist < 300) {
-                            this.vx += (dx / dist) * 0.15;
-                            this.vy += (dy / dist) * 0.15;
-                        } else if (Math.random() < 0.02) {
-                            this.vx += (Math.random() - 0.5) * 2;
-                            this.vy += (Math.random() - 0.5) * 2;
-                        }
-                    }
-                }
-
-                this.vx *= 0.95;
-                this.vy *= 0.95;
-                this.x += this.vx;
-                this.y += this.vy;
-
-                const distToCenter = Math.hypot(this.x - arena.x, this.y - arena.y);
-                if (distToCenter > arena.radius) {
-                    this.alive = false;
-
-                    if (!this.isPlayer) {
-                        spawnBurst(this.x, this.y, "#ff3366", 22, 7);
-                        spawnRing(this.x, this.y, "#ff3366", 55);
-                        spawnFloater(this.x, this.y, "+10 💰", "#ffd54f");
-                        coins += 10;
-                        localStorage.setItem("shove_coins", coins);
-                        coinsUI.textContent = coins;
-                        updateShopUI();
-                        if (player && Math.hypot(this.x - player.x, this.y - player.y) < 220) shake = Math.max(shake, 6);
-                        playFallSound();
-                    } else {
-                        spawnBurst(this.x, this.y, "#00ffcc", 45, 10);
-                        spawnRing(this.x, this.y, "#00ffcc", 90);
-                        spawnFloater(this.x, this.y, "ААААААА!", "#ff3366");
-                        shake = 18;
-                        playFallSound();
-                        setTimeout(() => resetGame(), 1200);
-                    }
-                }
-            }
-
-            draw(camX, camY) {
-                if (!this.alive) return;
-                const skin = skins.find(s => s.id === this.skinId) || skins[0];
-
-                ctx.save();
-                ctx.translate(this.x - camX, this.y - camY);
-
-                if (this.isPlayer) {
-                    const pulse = 1 + Math.sin(time * 0.15) * 0.12;
-
-                    ctx.beginPath();
-                    ctx.arc(0, 0, (this.radius + 12) * pulse, 0, Math.PI * 2);
-                    ctx.strokeStyle = "rgba(255, 213, 79, 0.9)";
-                    ctx.lineWidth = 3;
-                    ctx.shadowColor = "#ffd54f";
-                    ctx.shadowBlur = 15;
-                    ctx.stroke();
-                    ctx.shadowBlur = 0;
-
-                    ctx.beginPath();
-                    ctx.arc(0, 0, this.radius + 18, time * 0.05, time * 0.05 + Math.PI * 1.4);
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-
-                ctx.beginPath();
-                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = skin.color;
-                ctx.fill();
-                ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.closePath();
-
-                ctx.fillStyle = "#000";
-                ctx.font = `${this.radius * 1.1}px Arial`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(skin.emoji, 0, 0);
-
-                ctx.restore();
-            }
-        }
-
-        let player;
-        let entities = [];
-
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
-
-        function resetGame() {
-            player = new Entity(arena.x, arena.y, 24, currentSkin, true);
-            entities = [player];
-
-            const enemySkins = ["capybara", "floppa", "anon", "default"];
-            for (let i = 0; i < 5; i++) {
-                const randomSkin = enemySkins[Math.floor(Math.random() * enemySkins.length)];
-                const angle = Math.random() * Math.PI * 2;
-                const r = 50 + Math.random() * (arena.radius - 120);
-                entities.push(new Entity(arena.x + Math.cos(angle) * r, arena.y + Math.sin(angle) * r, 22, randomSkin));
-            }
-
-            particles = [];
-            rings = [];
-            floaters = [];
-            shake = 0;
-        }
-
-        function spawnBurst(x, y, color, count = 18, power = 6) {
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * power;
-                particles.push({
-                    x, y,
-                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-                    life: 1, decay: 0.02 + Math.random() * 0.03,
-                    size: 2 + Math.random() * 4, color
-                });
-            }
-        }
-
-        function spawnRing(x, y, color = "#ff007f", maxR = 45) {
-            rings.push({ x, y, r: 6, maxR, life: 1, decay: 0.06, color });
-        }
-
-        function spawnFloater(x, y, text, color = "#ffd54f") {
-            floaters.push({ x, y, text, color, life: 1, decay: 0.015, vy: -0.9 });
-        }
-
-        function updateAndDrawEffects(camX, camY) {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                p.vx *= 0.96; p.vy *= 0.96;
-                p.life -= p.decay;
-                if (p.life <= 0) { particles.splice(i, 1); continue; }
-                ctx.save();
-                ctx.globalAlpha = Math.max(p.life, 0);
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x - camX, p.y - camY, Math.max(p.size * p.life, 0.5), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-
-            for (let i = rings.length - 1; i >= 0; i--) {
-                const r = rings[i];
-                r.r += (r.maxR - r.r) * 0.15;
-                r.life -= r.decay;
-                if (r.life <= 0) { rings.splice(i, 1); continue; }
-                ctx.save();
-                ctx.globalAlpha = Math.max(r.life, 0);
-                ctx.strokeStyle = r.color;
-                ctx.lineWidth = 3 * r.life;
-                ctx.beginPath();
-                ctx.arc(r.x - camX, r.y - camY, r.r, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            for (let i = floaters.length - 1; i >= 0; i--) {
-                const f = floaters[i];
-                f.y += f.vy;
-                f.life -= f.decay;
-                if (f.life <= 0) { floaters.splice(i, 1); continue; }
-                ctx.save();
-                ctx.globalAlpha = Math.max(f.life, 0);
-                ctx.font = "bold 18px Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = "#000";
-                ctx.strokeText(f.text, f.x - camX, f.y - camY);
-                ctx.fillStyle = f.color;
-                ctx.fillText(f.text, f.x - camX, f.y - camY);
-                ctx.restore();
-            }
-        }
-
-        function drawMountain(camX, camY) {
-            const cx = arena.x - camX;
-            const cy = arena.y - camY;
-
-            const abyss = ctx.createRadialGradient(cx, cy, arena.radius * 0.8, cx, cy, Math.max(canvas.width, canvas.height) * 0.9);
-            abyss.addColorStop(0, "#100820");
-            abyss.addColorStop(0.4, "#080312");
-            abyss.addColorStop(1, "#010005");
-            ctx.fillStyle = abyss;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            for (let i = 0; i < 7; i++) {
-                const angle = (i / 7) * Math.PI * 2 + time * 0.0006;
-                const dist = arena.radius + 160 + i * 40;
-                const mx = cx + Math.cos(angle) * dist;
-                const my = cy + Math.sin(angle) * dist;
-                const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 110);
-                mg.addColorStop(0, "rgba(90, 50, 120, 0.18)");
-                mg.addColorStop(1, "rgba(90, 50, 120, 0)");
-                ctx.fillStyle = mg;
-                ctx.beginPath();
-                ctx.arc(mx, my, 110, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            const cliffOuter = arena.radius + 90;
-            const shadow = ctx.createRadialGradient(cx, cy, cliffOuter - 40, cx, cy, cliffOuter + 50);
-            shadow.addColorStop(0, "rgba(0,0,0,0)");
-            shadow.addColorStop(0.5, "rgba(0,0,0,0.75)");
-            shadow.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = shadow;
-            ctx.beginPath();
-            ctx.arc(cx, cy, cliffOuter + 50, 0, Math.PI * 2);
-            ctx.fill();
-
-            const cliffGrad = ctx.createRadialGradient(cx, cy, arena.radius, cx, cy, cliffOuter);
-            cliffGrad.addColorStop(0, "#4a4458");
-            cliffGrad.addColorStop(0.4, "#353042");
-            cliffGrad.addColorStop(0.8, "#221f2e");
-            cliffGrad.addColorStop(1, "#100e16");
-            ctx.fillStyle = cliffGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, cliffOuter, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = "rgba(10, 8, 15, 0.7)";
-            for (let i = 0; i < 40; i++) {
-                const angle = i * 0.157 + Math.sin(i * 13.7) * 0.5;
-                const r1 = arena.radius + 3;
-                const r2 = arena.radius + 30 + Math.abs(Math.sin(i * 5.3)) * 50;
-                ctx.lineWidth = 1 + (i % 2);
-                ctx.beginPath();
-                ctx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
-                ctx.lineTo(cx + Math.cos(angle + 0.15) * r2, cy + Math.sin(angle + 0.15) * r2);
-                ctx.stroke();
-            }
-
-            ctx.fillStyle = "rgba(110, 100, 130, 0.28)";
-            for (let i = 0; i < 16; i++) {
-                const angle = i * 0.42 + Math.sin(i * 7.1) * 0.8;
-                const r = arena.radius + 15 + Math.abs(Math.sin(i * 3.3)) * 55;
-                ctx.beginPath();
-                ctx.arc(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r, 4 + (i % 4) * 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, arena.radius + 10, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0,0,0,0.65)";
-            ctx.fill();
-
-            const arenaGrad = ctx.createRadialGradient(cx - arena.radius * 0.2, cy - arena.radius * 0.2, 0, cx, cy, arena.radius);
-            arenaGrad.addColorStop(0, "#3a3650");
-            arenaGrad.addColorStop(0.7, "#252236");
-            arenaGrad.addColorStop(1, "#181524");
-            ctx.fillStyle = arenaGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, arena.radius, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = "rgba(70, 65, 90, 0.4)";
-            ctx.lineWidth = 1;
-            for (let r = 50; r < arena.radius; r += 70) {
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2 + 0.3;
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.lineTo(cx + Math.cos(angle) * arena.radius * 0.9, cy + Math.sin(angle) * arena.radius * 0.9);
-                ctx.strokeStyle = "rgba(40, 35, 60, 0.5)";
-                ctx.stroke();
-            }
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, arena.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = "#ff007f";
-            ctx.lineWidth = 6;
-            ctx.shadowColor = "#ff007f";
-            ctx.shadowBlur = 22;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            ctx.beginPath();
-            ctx.arc(cx, cy, arena.radius - 12, 0, Math.PI * 2);
-            ctx.strokeStyle = "rgba(255, 0, 127, 0.4)";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([8, 12]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        function handleCollisions() {
-            for (let i = 0; i < entities.length; i++) {
-                for (let j = i + 1; j < entities.length; j++) {
-                    const e1 = entities[i], e2 = entities[j];
-                    if (!e1.alive || !e2.alive) continue;
-
-                    let dx = e2.x - e1.x, dy = e2.y - e1.y;
-                    let dist = Math.hypot(dx, dy);
-                    if (dist === 0) { dx = 0.01; dy = 0; dist = 0.01; }
-
-                    const minDist = e1.radius + e2.radius;
-                    if (dist < minDist) {
-                        const overlap = minDist - dist;
-                        const nx = dx / dist, ny = dy / dist;
-
-                        e1.x -= nx * overlap * 0.5; e1.y -= ny * overlap * 0.5;
-                        e2.x += nx * overlap * 0.5; e2.y += ny * overlap * 0.5;
-
-                        const kx = e1.vx - e2.vx, ky = e1.vy - e2.vy;
-                        const p = 2 * (nx * kx + ny * ky) / (e1.mass + e2.mass);
-                        const impact = Math.abs(p);
-
-                        e1.vx -= p * e2.mass * nx * 2.0; e1.vy -= p * e2.mass * ny * 2.0;
-                        e2.vx += p * e1.mass * nx * 2.0; e2.vy += p * e1.mass * ny * 2.0;
-
-                        const midX = (e1.x + e2.x) / 2, midY = (e1.y + e2.y) / 2;
-                        const isPlayerInvolved = e1.isPlayer || e2.isPlayer;
-
-                        if (impact > 0.25) {
-                            const sparkCount = Math.min(Math.floor(impact * 8) + 2, 36);
-                            const sparkPower = Math.min(impact * 2.2 + 1, 14);
-
-                            let sparkColor;
-                            if (impact > 3) sparkColor = "#ffd54f";
-                            else if (impact > 1.5) sparkColor = "#ff007f";
-                            else sparkColor = "#ffffff";
-
-                            spawnBurst(midX, midY, sparkColor, sparkCount, sparkPower);
-                            if (impact > 1.0) spawnRing(midX, midY, sparkColor, 20 + impact * 12);
-                            if (isPlayerInvolved) shake = Math.max(shake, Math.min(impact * 2.5, 14));
-                        }
-
-                        if (isPlayerInvolved && impact > 1.8) {
-                            const attacker = e1.isPlayer ? e1 : e2;
-                            if (attacker.hitCooldown <= 0) {
-                                const bonus = Math.floor(impact * 1.5);
-                                coins += bonus;
-                                localStorage.setItem("shove_coins", coins);
-                                coinsUI.textContent = coins;
-                                spawnFloater(midX, midY - 10, "+" + bonus + " 💰", "#ffd54f");
-                                updateShopUI();
-                                attacker.hitCooldown = 25;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        function setInput(clientX, clientY) {
-            if (!player) return;
-            const camX = player.x - canvas.width / 2;
-            const camY = player.y - canvas.height / 2;
-            targetX = clientX + camX;
-            targetY = clientY + camY;
-        }
-
-        window.addEventListener("pointerdown", (e) => {
-            initAudio();
-            if (e.target.closest("button")) return;
-            isPointerDown = true;
-            setInput(e.clientX, e.clientY);
-        });
-        window.addEventListener("pointermove", (e) => { if (isPointerDown) setInput(e.clientX, e.clientY); });
-        window.addEventListener("pointerup", () => { isPointerDown = false; });
-        window.addEventListener("pointercancel", () => { isPointerDown = false; });
-
-        function updateShopUI() {
-            skinsList.innerHTML = "";
-            skins.forEach((skin) => {
-                const div = document.createElement("div");
-                div.className = "skin-option";
-                const span = document.createElement("span");
-                span.textContent = skin.name;
-                const btn = document.createElement("button");
-                const isOwned = ownedSkins.includes(skin.id);
-                const isEquipped = currentSkin === skin.id;
-                btn.className = "skin-btn" + (isEquipped ? " equipped" : "");
-                btn.textContent = isEquipped ? "Надет" : (isOwned ? "Надеть" : skin.price + " 💰");
-
-                btn.onclick = () => {
-                    if (isOwned) {
-                        currentSkin = skin.id;
-                        localStorage.setItem("shove_current_skin", currentSkin);
-                        if (player) player.skinId = currentSkin;
-                        updateShopUI();
-                        return;
-                    }
-                    if (coins >= skin.price) {
-                        coins -= skin.price;
-                        localStorage.setItem("shove_coins", coins);
-                        coinsUI.textContent = coins;
-                        ownedSkins.push(skin.id);
-                        localStorage.setItem("shove_owned_skins", JSON.stringify(ownedSkins));
-                        currentSkin = skin.id;
-                        localStorage.setItem("shove_current_skin", currentSkin);
-                        if (player) player.skinId = currentSkin;
-                        updateShopUI();
-                    }
-                };
-
-                div.appendChild(span);
-                div.appendChild(btn);
-                skinsList.appendChild(div);
-            });
-        }
-
-        shopBtn.onclick = () => { shopModal.style.display = "block"; updateShopUI(); };
-        closeShop.onclick = () => { shopModal.style.display = "none"; };
-
-        function gameLoop() {
-            time++;
-            ctx.fillStyle = "#020004";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            if (player) {
-                let camX = player.x - canvas.width / 2;
-                let camY = player.y - canvas.height / 2;
-
-                if (shake > 0.3) {
-                    camX += (Math.random() - 0.5) * shake;
-                    camY += (Math.random() - 0.5) * shake;
-                    shake *= 0.9;
-                } else shake = 0;
-
-                drawMountain(camX, camY);
-
-                let aliveEnemies = 0;
-                entities.forEach((e) => {
-                    e.update();
-                    e.draw(camX, camY);
-                    if (!e.isPlayer && e.alive) aliveEnemies++;
-                });
-
-                handleCollisions();
-                updateAndDrawEffects(camX, camY);
-                enemiesUI.textContent = aliveEnemies;
-
-                if (aliveEnemies === 0 && player.alive) {
-                    spawnBurst(arena.x, arena.y, "#00ffcc", 60, 12);
-                    spawnRing(arena.x, arena.y, "#00ffcc", 120);
-                    spawnFloater(arena.x, arena.y - 60, "ЦАРЬ ГОРЫ!", "#00ffcc");
-                    shake = 12;
-                    setTimeout(() => { alert("Победа! Ты — Царь горы!"); resetGame(); }, 150);
-                }
-            }
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        resetGame();
-        gameLoop();
-    </script>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ══════════════════ КОНСТАНТЫ ══════════════════ */
+const cv  = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = 960, H = 520;
+const TAU = Math.PI * 2;
+
+// Стандартные борта, так как интерфейс вынесен за пределы канваса
+const RAIL = 30; 
+const L = RAIL, Rt = W - RAIL, T = RAIL, Bt = H - RAIL;
+
+const BR  = 11;
+const PR  = 21;
+const DAMP = 1.3;
+const STOP = 6;
+const SUBSTEPS = 20;
+
+const POCKETS = [
+  {x:L, y:T}, {x:(L+Rt)/2, y:T}, {x:Rt, y:T},
+  {x:L, y:Bt}, {x:(L+Rt)/2, y:Bt}, {x:Rt, y:Bt}
+];
+
+const COLORS = [
+  '#f2c40c','#1554c9','#cc2222','#6d2ec4','#e8751a','#1c8f3e','#8c2222',
+  '#151515',
+  '#f2c40c','#1554c9','#cc2222','#6d2ec4','#e8751a','#1c8f3e','#8c2222'
+];
+
+/* ══════════════════ ЗВУК ══════════════════ */
+let audioCtx = null;
+let masterMuted = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) { return; }
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+const sounds = {
+  _lastBallHit: 0,
+  cueHit(power) {
+    if (masterMuted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc1 = audioCtx.createOscillator();
+    const g1 = audioCtx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(180, now);
+    osc1.frequency.exponentialRampToValueAtTime(60, now + 0.09);
+    g1.gain.setValueAtTime(0.18 + power * 0.22, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc1.connect(g1); g1.connect(audioCtx.destination);
+    osc1.start(now); osc1.stop(now + 0.12);
+
+    const osc2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(2800, now);
+    osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.02);
+    g2.gain.setValueAtTime(0.06 + power * 0.1, now);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    osc2.connect(g2); g2.connect(audioCtx.destination);
+    osc2.start(now); osc2.stop(now + 0.03);
+  },
+  ballHit(speed) {
+    if (masterMuted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    if (now - this._lastBallHit < 0.018) return;
+    this._lastBallHit = now;
+    const intensity = Math.min(1, speed / 900);
+    if (intensity < 0.04) return;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    const baseF = 2100 + Math.random() * 700;
+    osc.frequency.setValueAtTime(baseF, now);
+    osc.frequency.exponentialRampToValueAtTime(baseF * 0.55, now + 0.045);
+    g.gain.setValueAtTime(0.05 + intensity * 0.22, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.055);
+  },
+  railHit(speed) {
+    if (masterMuted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const intensity = Math.min(1, speed / 1100);
+    if (intensity < 0.05) return;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
+    g.gain.setValueAtTime(0.025 + intensity * 0.11, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.1);
+  },
+  pocket() {
+    if (masterMuted || !audioCtx) return;
+    const now = audioCtx.currentTime + Math.random() * 0.02;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(95, now + 0.16);
+    g.gain.setValueAtTime(0.25, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.22);
+
+    const osc2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(560, now + 0.05);
+    osc2.frequency.exponentialRampToValueAtTime(190, now + 0.22);
+    g2.gain.setValueAtTime(0.08, now + 0.05);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc2.connect(g2); g2.connect(audioCtx.destination);
+    osc2.start(now + 0.05); osc2.stop(now + 0.3);
+  }
+};
+
+/* ══════════════════ СОСТОЯНИЕ ══════════════════ */
+let balls = [];
+let cue = null;
+let phase = 'aim';
+let power = 0;
+let powerDir = 1;
+let mouse = {x: W/2, y: H/2};
+let activePointers = new Map();
+let turn = 0;
+let scores = [0,0];
+let pottedThisShot = 0;
+let scratched = false;
+let gameEnded = false;
+let msgText = '', msgTimer = 0;
+
+/* ══════════════════ УТИЛИТЫ ══════════════════ */
+function rrect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function makeBall(x,y,num){
+  return {
+    x, y, vx:0, vy:0, num,
+    color: num === 0 ? '#f7f7f0' : COLORS[num-1],
+    striped: num > 8,
+    active: true
+  };
+}
+
+/* ══════════════════ НОВАЯ ПАРТИЯ ══════════════════ */
+function newGame(){
+  balls = [];
+  const footX = L + (Rt-L) * 0.70;
+  const cy = (T+Bt)/2;
+  const dx = BR*Math.sqrt(3) + 0.6;
+  const dy = BR*2 + 0.6;
+
+  const order = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+  for (let i = order.length-1; i > 0; i--){
+    const j = (Math.random()*(i+1))|0;
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const i8 = order.indexOf(8);
+  [order[4], order[i8]] = [order[i8], order[4]];
+
+  let k = 0;
+  for (let row = 0; row < 5; row++){
+    for (let i = 0; i <= row; i++){
+      balls.push(makeBall(
+        footX + row*dx,
+        cy + (i - row/2)*dy,
+        order[k++]
+      ));
+    }
+  }
+
+  cue = makeBall(L + (Rt-L)*0.25, cy, 0);
+  balls.push(cue);
+
+  turn = 0; scores = [0,0];
+  pottedThisShot = 0; scratched = false;
+  phase = 'aim'; power = 0; powerDir = 1; gameEnded = false;
+  msgText = ''; msgTimer = 0;
+  activePointers.clear();
+
+  updateHud();
+}
+
+/* ══════════════════ ФИЗИКА ══════════════════ */
+function step(h){
+  for (const b of balls){
+    if (!b.active) continue;
+    b.x += b.vx*h;
+    b.y += b.vy*h;
+    const d = Math.exp(-DAMP*h);
+    b.vx *= d; b.vy *= d;
+    if (Math.hypot(b.vx, b.vy) < STOP){ b.vx = 0; b.vy = 0; }
+  }
+
+  for (const b of balls){
+    if (!b.active) continue;
+    for (const p of POCKETS){
+      const dx = b.x - p.x, dy = b.y - p.y;
+      if (dx*dx + dy*dy < PR*PR){ pot(b); break; }
+    }
+  }
+
+  for (let i = 0; i < balls.length; i++){
+    const a = balls[i];
+    if (!a.active) continue;
+    for (let j = i+1; j < balls.length; j++){
+      const b = balls[j];
+      if (!b.active) continue;
+      collide(a, b);
+    }
+  }
+
+  for (const b of balls){
+    if (b.active) bounceWalls(b);
+  }
+}
+
+function collide(a, b){
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const d2 = dx*dx + dy*dy;
+  const minD = BR*2;
+  if (d2 >= minD*minD || d2 === 0) return;
+
+  const d = Math.sqrt(d2);
+  const nx = dx/d, ny = dy/d;
+  const overlap = (minD - d) * 0.5;
+
+  a.x -= nx*overlap; a.y -= ny*overlap;
+  b.x += nx*overlap; b.y += ny*overlap;
+
+  const dvn = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny;
+  if (dvn > 0) return;
+
+  sounds.ballHit(Math.abs(dvn));
+
+  const e = 0.96;
+  const imp = -(1 + e) * dvn * 0.5;
+  a.vx -= imp*nx; a.vy -= imp*ny;
+  b.vx += imp*nx; b.vy += imp*ny;
+}
+
+function bounceWalls(b){
+  const e = 0.9;
+  if (b.x - BR < L)  { b.x = L + BR;  sounds.railHit(Math.abs(b.vx)); b.vx =  Math.abs(b.vx)*e; }
+  if (b.x + BR > Rt) { b.x = Rt - BR; sounds.railHit(Math.abs(b.vx)); b.vx = -Math.abs(b.vx)*e; }
+  if (b.y - BR < T)  { b.y = T + BR;  sounds.railHit(Math.abs(b.vy)); b.vy =  Math.abs(b.vy)*e; }
+  if (b.y + BR > Bt) { b.y = Bt - BR; sounds.railHit(Math.abs(b.vy)); b.vy = -Math.abs(b.vy)*e; }
+}
+
+function pot(b){
+  b.active = false;
+  b.vx = b.vy = 0;
+  sounds.pocket();
+
+  if (b.num === 0){
+    scratched = true;
+  } else {
+    pottedThisShot++;
+    scores[turn] += (b.num === 8) ? 3 : 1;
+    updateHud();
+  }
+}
+
+function allStopped(){
+  for (const b of balls){
+    if (b.active && (b.vx !== 0 || b.vy !== 0)) return false;
+  }
+  return true;
+}
+
+/* ══════════════════ ХОД ИГРЫ ══════════════════ */
+function shoot(){
+  if (!cue || !cue.active) return;
+
+  let dx = mouse.x - cue.x;
+  let dy = mouse.y - cue.y;
+  const len = Math.hypot(dx, dy) || 1;
+  dx /= len; dy /= len;
+
+  const speed = 320 + power * 3500;
+  cue.vx = dx * speed;
+  cue.vy = dy * speed;
+
+  sounds.cueHit(power);
+
+  pottedThisShot = 0;
+  scratched = false;
+  power = 0;
+  powerDir = 1;
+  phase = 'rolling';
+}
+
+function endShot(){
+  if (scratched){
+    scores[turn] = Math.max(0, scores[turn] - 1);
+    respawnCue();
+    turn = 1 - turn;
+    showMsg('Штраф — свой шар в лузе!');
+  } else if (pottedThisShot > 0){
+    showMsg(pottedThisShot > 1 ? `+${pottedThisShot}! Ещё удар!` : 'Есть! Ещё удар!');
+  } else {
+    turn = 1 - turn;
+  }
+
+  pottedThisShot = 0;
+  scratched = false;
+  phase = 'aim';
+  power = 0;
+  powerDir = 1;
+  updateHud();
+
+  if (balls.every(b => !b.active || b.num === 0)){
+    gameEnded = true;
+    updateHud();
+  }
+}
+
+function respawnCue(){
+  cue.active = true;
+  cue.vx = cue.vy = 0;
+
+  const y = (T + Bt)/2;
+  let x = L + (Rt-L)*0.25;
+
+  for (let n = 0; n < 60; n++){
+    let free = true;
+    for (const b of balls){
+      if (b === cue || !b.active) continue;
+      if (Math.hypot(b.x - x, b.y - y) < BR*2.5){ free = false; break; }
+    }
+    if (free) break;
+    x += BR*2.2;
+    if (x > Rt - BR*3) x = L + (Rt-L)*0.25;
+  }
+  cue.x = x;
+  cue.y = y;
+}
+
+function showMsg(t, d = 1.7){
+  msgText = t;
+  msgTimer = d;
+}
+
+/* ══════════════════ ОБНОВЛЕНИЕ ══════════════════ */
+function update(dt){
+  if (msgTimer > 0) msgTimer -= dt;
+
+  if (phase === 'rolling'){
+    const h = dt / SUBSTEPS;
+    for (let i = 0; i < SUBSTEPS; i++) step(h);
+    if (allStopped()) endShot();
+  } else if (phase === 'charging'){
+    power += powerDir * (dt / 1.1);
+    if (power >= 1) { power = 1; powerDir = -1; }
+    else if (power <= 0) { power = 0; powerDir = 1; }
+  }
+}
+
+/* ══════════════════ ОТРИСОВКА ══════════════════ */
+function drawTable(){
+  const wood = ctx.createLinearGradient(0, 0, 0, H);
+  wood.addColorStop(0,   '#7a4d27');
+  wood.addColorStop(0.35,'#573318');
+  wood.addColorStop(0.6, '#3f2411');
+  wood.addColorStop(1,   '#2a170a');
+  ctx.fillStyle = wood;
+  rrect(0, 0, W, H, 18);
+  ctx.fill();
+
+  ctx.save();
+  rrect(L, T, Rt-L, Bt-T, 6);
+  ctx.clip();
+  const felt = ctx.createRadialGradient(W/2, H/2, 40, W/2, H/2, 620);
+  felt.addColorStop(0, '#208051');
+  felt.addColorStop(1, '#0b3a22');
+  ctx.fillStyle = felt;
+  ctx.fillRect(L, T, Rt-L, Bt-T);
+
+  const vig = ctx.createRadialGradient(W/2, H/2, 150, W/2, H/2, 640);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(L, T, Rt-L, Bt-T);
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(L + (Rt-L)*0.25, T);
+  ctx.lineTo(L + (Rt-L)*0.25, Bt);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.arc(L + (Rt-L)*0.70, (T+Bt)/2, 3, 0, TAU);
+  ctx.fill();
+
+  for (const p of POCKETS){
+    const pg = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, PR);
+    pg.addColorStop(0,    '#000000');
+    pg.addColorStop(0.72, '#04100a');
+    pg.addColorStop(1,    'rgba(8,30,18,0.9)');
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, PR, 0, TAU);
+    ctx.fillStyle = pg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  rrect(L, T, Rt-L, Bt-T, 6);
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+}
+
+function drawBall(b){
+  const r = BR;
+
+  ctx.beginPath();
+  ctx.ellipse(b.x + 2, b.y + 3.5, r*0.98, r*0.9, 0, 0, TAU);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fill();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, r, 0, TAU);
+  ctx.clip();
+
+  if (b.striped){
+    ctx.fillStyle = '#f7f7f2';
+    ctx.fillRect(b.x-r, b.y-r, r*2, r*2);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x-r, b.y-r*0.53, r*2, r*1.06);
+  } else {
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x-r, b.y-r, r*2, r*2);
+  }
+
+  const sh = ctx.createRadialGradient(
+    b.x - r*0.36, b.y - r*0.42, r*0.08,
+    b.x, b.y, r*1.15
+  );
+  sh.addColorStop(0,    'rgba(255,255,255,0.6)');
+  sh.addColorStop(0.4,  'rgba(255,255,255,0.06)');
+  sh.addColorStop(1,    'rgba(0,0,0,0.5)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(b.x-r, b.y-r, r*2, r*2);
+
+  ctx.restore();
+
+  if (b.num > 0){
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, r*0.5, 0, TAU);
+    ctx.fillStyle = '#fbfbf7';
+    ctx.fill();
+
+    ctx.fillStyle = '#141414';
+    ctx.font = `bold ${Math.round(r*0.8)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(b.num), b.x, b.y + 0.5);
+  }
+}
+
+function drawAim(){
+  if (!cue || !cue.active) return;
+
+  let dx = mouse.x - cue.x;
+  let dy = mouse.y - cue.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return;
+  dx /= len; dy /= len;
+
+  let best = Infinity, hit = null;
+  for (const b of balls){
+    if (!b.active || b === cue) continue;
+    const ox = b.x - cue.x, oy = b.y - cue.y;
+    const proj = ox*dx + oy*dy;
+    if (proj <= 0) continue;
+    const perp2 = ox*ox + oy*oy - proj*proj;
+    const D = BR*2;
+    if (perp2 > D*D) continue;
+    const t = proj - Math.sqrt(D*D - perp2);
+    if (t < best){ best = t; hit = b; }
+  }
+
+  const cand = [];
+  if (dx > 0) cand.push((Rt - BR - cue.x)/dx);
+  if (dx < 0) cand.push((L + BR - cue.x)/dx);
+  if (dy > 0) cand.push((Bt - BR - cue.y)/dy);
+  if (dy < 0) cand.push((T + BR - cue.y)/dy);
+  for (const t of cand){
+    if (t > 0 && t < best){ best = t; hit = null; }
+  }
+  if (!isFinite(best)) best = 400;
+
+  const ex = cue.x + dx*best;
+  const ey = cue.y + dy*best;
+
+  ctx.save();
+  ctx.setLineDash([10, 8]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cue.x + dx*BR, cue.y + dy*BR);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
+
+  if (hit){
+    ctx.beginPath();
+    ctx.arc(ex, ey, BR, 0, TAU);
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  const back = 16 + power*95;
+  ctx.save();
+  ctx.translate(cue.x, cue.y);
+  ctx.rotate(Math.atan2(dy, dx));
+
+  const stickGrad = ctx.createLinearGradient(-back-300, 0, -back, 0);
+  stickGrad.addColorStop(0,    '#2e1c0d');
+  stickGrad.addColorStop(0.55, '#8a5a2b');
+  stickGrad.addColorStop(1,    '#efdcb4');
+
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = stickGrad;
+  ctx.beginPath();
+  ctx.moveTo(-back, 0);
+  ctx.lineTo(-back - 290, 0);
+  ctx.stroke();
+
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = '#4d7fc4';
+  ctx.beginPath();
+  ctx.moveTo(-back, 0);
+  ctx.lineTo(-back - 9, 0);
+  ctx.stroke();
+
+  ctx.restore();
+
+  if (phase === 'charging' || power > 0.01) {
+    const ringRadius = BR + 26;
+    const ringWidth = 8;
+
+    ctx.beginPath();
+    ctx.arc(cue.x, cue.y, ringRadius, 0, TAU);
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = ringWidth;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cue.x, cue.y, ringRadius, -Math.PI/2, -Math.PI/2 + TAU*power);
+    ctx.strokeStyle = `hsl(${(1-power)*115}, 92%, 56%)`;
+    ctx.lineWidth = ringWidth;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+}
+
+function drawOverlay(){
+  if (gameEnded){
+    ctx.fillStyle = 'rgba(4,8,12,0.62)';
+    rrect(0, 0, W, H, 18);
+    ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const title = scores[0] === scores[1]
+      ? 'Ничья!'
+      : (scores[0] > scores[1] ? 'Победил Игрок 1' : 'Победил Игрок 2');
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.font = 'bold 48px system-ui, sans-serif';
+    ctx.fillText(title, W/2 + 2, H/2 - 18 + 2);
+
+    ctx.fillStyle = '#fff';
+    ctx.fillText(title, W/2, H/2 - 18);
+
+    ctx.font = 'bold 24px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText(`Счёт: ${scores[0]} : ${scores[1]}`, W/2, H/2 + 38);
+
+    ctx.font = '15px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('нажми «↻» для новой партии', W/2, H/2 + 78);
+    return;
+  }
+
+  if (msgTimer > 0){
+    const a = Math.min(1, msgTimer * 2.2);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 30px system-ui, sans-serif';
+
+    const tw = ctx.measureText(msgText).width;
+    ctx.fillStyle = 'rgba(6,14,20,0.72)';
+    rrect(W/2 - tw/2 - 26, 58, tw + 52, 54, 16);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(61,220,132,0.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#eafff3';
+    ctx.fillText(msgText, W/2, 86);
+    ctx.restore();
+  }
+}
+
+function render(){
+  ctx.clearRect(0, 0, W, H);
+  drawTable();
+  for (const b of balls) if (b.active) drawBall(b);
+  if (phase === 'aim' || phase === 'charging') drawAim();
+  drawOverlay();
+}
+
+/* ══════════════════ HUD ══════════════════ */
+const pl0 = document.getElementById('pl0');
+const pl1 = document.getElementById('pl1');
+const muteBtn = document.getElementById('mute');
+const restartBtn = document.getElementById('restart');
+
+function updateHud(){
+  pl0.querySelector('.sc').textContent = scores[0];
+  pl1.querySelector('.sc').textContent = scores[1];
+  pl0.classList.toggle('active', turn === 0 && !gameEnded);
+  pl1.classList.toggle('active', turn === 1 && !gameEnded);
+}
+
+muteBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  masterMuted = !masterMuted;
+  muteBtn.textContent = masterMuted ? '🔇' : '🔊';
+});
+
+restartBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  initAudio();
+  newGame();
+});
+
+/* ══════════════════ ВВОД ══════════════════ */
+function toCanvas(e){
+  const r = cv.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (W / r.width),
+    y: (e.clientY - r.top ) * (H / r.height)
+  };
+}
+
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  initAudio();
+  
+  const pos = toCanvas(e);
+  activePointers.set(e.pointerId, pos);
+  mouse = pos;
+
+  if (phase === 'aim' && !gameEnded){
+    phase = 'charging';
+    power = 0;
+    powerDir = 1;
+  }
+});
+
+cv.addEventListener('pointermove', e => {
+  if (activePointers.has(e.pointerId)) {
+    const pos = toCanvas(e);
+    activePointers.set(e.pointerId, pos);
+    mouse = pos;
+  } else {
+    mouse = toCanvas(e);
+  }
+});
+
+cv.addEventListener('pointerup', e => {
+  e.preventDefault();
+  activePointers.delete(e.pointerId);
+
+  if (activePointers.size > 0) {
+    const remainingPositions = Array.from(activePointers.values());
+    mouse = remainingPositions[remainingPositions.length - 1];
+    return; 
+  }
+
+  if (phase === 'charging'){
+    shoot();
+  }
+});
+
+cv.addEventListener('pointercancel', e => {
+  activePointers.delete(e.pointerId);
+  if (activePointers.size === 0 && phase === 'charging') {
+    phase = 'aim';
+    power = 0;
+    powerDir = 1;
+  }
+});
+
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ══════════════════ СТАРТОВЫЙ ЭКРАН И ПОЛНЫЙ ЭКРАН ══════════════════ */
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
+const gameWrapper = document.getElementById('game-wrapper');
+
+startBtn.addEventListener('click', () => {
+  startScreen.style.display = 'none';
+  gameWrapper.classList.add('active');
+  
+  // Запрос полноэкранного режима
+  const el = document.documentElement;
+  if (el.requestFullscreen) {
+    el.requestFullscreen().catch(()=>{});
+  } else if (el.webkitRequestFullscreen) {
+    el.webkitRequestFullscreen().catch(()=>{});
+  }
+  
+  initAudio();
+  // Пересчет размеров после скрытия элементов
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+});
+
+/* ══════════════════ ГЛАВНЫЙ ЦИКЛ ══════════════════ */
+let lastT = performance.now();
+
+function loop(t){
+  const dt = Math.min((t - lastT) / 1000, 1/30);
+  lastT = t;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+newGame();
+requestAnimationFrame(loop);
+
+})();
+</script>
 </body>
 </html>
